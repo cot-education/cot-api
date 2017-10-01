@@ -2,38 +2,35 @@ package org.collegeopentextbooks.api.service;
 
 import java.util.List;
 
-import org.collegeopentextbooks.api.db.OrganizationDaoImpl;
+import org.collegeopentextbooks.api.exception.RequiredValueEmptyException;
+import org.collegeopentextbooks.api.exception.ValueTooLongException;
 import org.collegeopentextbooks.api.model.Organization;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
-@Service
-public class OrganizationService {
-	
-	@Autowired
-	private OrganizationDaoImpl organizationDao;
-	
+public interface OrganizationService {
+
 	/**
 	 * Retrieves ALL organizations
 	 * @return
+	 * @author steve.perkins
 	 */
-	public List<Organization> getOrganizations() {
-		List<Organization> organizations = organizationDao.getOrganizations();
-		return organizations;
-	}
-	
+	List<Organization> getOrganizations();
+
 	/**
 	 * Retrieves an organization by it's ID
 	 * @param organizationId
 	 * @return
+	 * @author steve.perkins
 	 */
-	public Organization getRepository(Integer organizationId) {
-		Organization organization = organizationDao.getById(organizationId);
-		return organization;
-	}
-	
-	public Organization save(Organization organization) {
-		return organizationDao.save(organization);
-	}
-	
+	Organization getRepository(Integer organizationId);
+
+	/**
+	 * Creates or updates the given organization's scalar values.
+	 * @param repository the organization to create or update
+	 * @return the updated organization. If this is a create operation, the new object's ID is populated on both the returned object and the given object.
+	 * @throws RequiredValueEmptyException if the provided name is missing or blank
+	 * @throws ValueTooLongException if the provided name, URL, or logo URL is longer than their respective max lengths
+	 * @author steve.perkins
+	 */
+	Organization save(Organization organization) throws RequiredValueEmptyException, ValueTooLongException;
+
 }

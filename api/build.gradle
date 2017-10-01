@@ -44,12 +44,14 @@ dependencies {
     
     compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.6'
     
-    
     // Requires Spring Security
     //compile("org.springframework.boot:spring-boot-starter-actuator")
     // Swagger2 for API documentation. Creates docs at http://<webroot>/swagger-ui.html.
     compile group: 'io.springfox', name: 'springfox-swagger2', version: '2.7.0'
     compile group: 'io.springfox', name: 'springfox-swagger-ui', version: '2.7.0'
+    
+    // For interaction with the OpenStax metadata spreadsheet
+    compile 'com.google.apis:google-api-services-sheets:v4-rev483-1.22.0'
     
 
     // Unit tests

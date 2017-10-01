@@ -2,38 +2,34 @@ package org.collegeopentextbooks.api.service;
 
 import java.util.List;
 
-import org.collegeopentextbooks.api.db.AuthorDaoImpl;
+import org.collegeopentextbooks.api.exception.RequiredValueEmptyException;
+import org.collegeopentextbooks.api.exception.ValueTooLongException;
 import org.collegeopentextbooks.api.model.Author;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
-@Service
-public class AuthorService {
-	
-	@Autowired
-	private AuthorDaoImpl authorDao;
-	
+public interface AuthorService {
+
 	/**
 	 * Retrieves ALL authors
 	 * @return
+	 * @author steve.perkins
 	 */
-	public List<Author> getAuthors() {
-		List<Author> authors = authorDao.getAuthors();
-		return authors;
-	}
-	
+	List<Author> getAuthors();
+
 	/**
 	 * Retrieves an author by it's ID
 	 * @param authorId
 	 * @return
+	 * @author steve.perkins
 	 */
-	public Author getAuthor(Integer authorId) {
-		Author author = authorDao.getById(authorId);
-		return author;
-	}
-	
-	public Author save(Author author) {
-		return authorDao.save(author);
-	}
-	
+	Author getAuthor(Integer authorId);
+
+	/**
+	 * Creates or updates the given author's scalar values.
+	 * @param repository the author to create or update
+	 * @return the updated author. If this is a create operation, the new object's ID is populated on both the returned object and the given object.
+	 * @throws RequiredValueEmptyException if the provided name is missing or blank
+	 * @author steve.perkins
+	 */
+	Author save(Author author) throws RequiredValueEmptyException, ValueTooLongException;
+
 }

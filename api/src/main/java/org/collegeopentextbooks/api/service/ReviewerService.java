@@ -2,33 +2,28 @@ package org.collegeopentextbooks.api.service;
 
 import java.util.List;
 
-import org.collegeopentextbooks.api.db.ReviewerDaoImpl;
+import org.collegeopentextbooks.api.exception.RequiredValueEmptyException;
+import org.collegeopentextbooks.api.exception.ValueTooLongException;
 import org.collegeopentextbooks.api.model.Reviewer;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
-@Service
-public class ReviewerService {
-	
-	@Autowired
-	private ReviewerDaoImpl reviewerDao;
-	
-	
+public interface ReviewerService {
+
 	/**
 	 * Retrieves ALL reviewers
 	 * @return
 	 */
-	public List<Reviewer> getReviewers() {
-		return reviewerDao.getReviewers();
-	}
+	List<Reviewer> getReviewers();
 
-	public Reviewer getReviewer(Integer reviewerId) {
-		Reviewer reviewer = reviewerDao.getById(reviewerId);
-		return reviewer;
-	}
-	
-	public Reviewer save(Reviewer reviewer) {
-		return reviewerDao.save(reviewer);
-	}
-	
+	Reviewer getReviewer(Integer reviewerId);
+
+	/**
+	 * Creates or updates the given reviewer's scalar values.
+	 * @param repository the reviewer to create or update
+	 * @return the updated reviewer. If this is a create operation, the new object's ID is populated on both the returned object and the given object.
+	 * @throws RequiredValueEmptyException if the provided name is missing or blank
+	 * @throws ValueTooLongException if the provided name, title, or biography is longer than their respective max lengths
+	 * @author steve.perkins
+	 */
+	Reviewer save(Reviewer reviewer);
+
 }

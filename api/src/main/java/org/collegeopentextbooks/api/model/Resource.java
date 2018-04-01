@@ -12,15 +12,15 @@ public class Resource extends AbstractModelObject {
 	private List<Author> authors;
 	private List<Editor> editors;
 	private List<Tag> tags;
-	private List<License> licenses;
+	private License license;
 	private List<Review> reviews;
 	
 	private String title;
 	private String url;
-	private License license;
 	private String ancillariesUrl;
-	private String externalReviewUrl;
+	private String cotReviewUrl;
 	private String searchTitle;
+	private String externalId;
 	
 	public Repository getRepository() {
 		return repository;
@@ -46,11 +46,11 @@ public class Resource extends AbstractModelObject {
 	public void setTags(List<Tag> tags) {
 		this.tags = tags;
 	}
-	public List<License> getLicenses() {
-		return licenses;
+	public License getLicense() {
+		return license;
 	}
-	public void setLicenses(List<License> licenses) {
-		this.licenses = licenses;
+	public void setLicense(License license) {
+		this.license = license;
 	}
 	public List<Review> getReviews() {
 		return reviews;
@@ -72,23 +72,17 @@ public class Resource extends AbstractModelObject {
 	public void setUrl(String url) {
 		this.url = url;
 	}
-	public License getLicense() {
-		return license;
-	}
-	public void setLicense(License license) {
-		this.license = license;
-	}
 	public String getAncillariesUrl() {
 		return ancillariesUrl;
 	}
 	public void setAncillariesUrl(String ancillariesUrl) {
 		this.ancillariesUrl = ancillariesUrl;
 	}
-	public String getExternalReviewUrl() {
-		return externalReviewUrl;
+	public String getCotReviewUrl() {
+		return cotReviewUrl;
 	}
-	public void setExternalReviewUrl(String externalReviewUrl) {
-		this.externalReviewUrl = externalReviewUrl;
+	public void setCotReviewUrl(String cotReviewUrl) {
+		this.cotReviewUrl = cotReviewUrl;
 	}
 	public String getSearchTitle() {
 		return searchTitle;
@@ -96,5 +90,15 @@ public class Resource extends AbstractModelObject {
 	public void setSearchTitle(String searchTitle) {
 		this.searchTitle = searchTitle;
 	}
-
+	/**
+	 * Retrieves the repository-specific identifier for this resource
+	 * @return
+	 * @author steve.perkins
+	 */
+	public String getExternalId() {
+		return externalId;
+	}
+	public void setExternalId(String externalId) {
+		this.externalId = externalId;
+	}
 }

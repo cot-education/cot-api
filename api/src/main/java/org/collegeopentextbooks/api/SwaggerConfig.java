@@ -12,8 +12,8 @@ import springfox.documentation.builders.RequestHandlerSelectors;
 import springfox.documentation.spi.DocumentationType;
 import springfox.documentation.spring.web.plugins.Docket;
 import springfox.documentation.swagger2.annotations.EnableSwagger2;
-
-@Profile("dev,qa,prod")
+// TODO Uncomment @Profile if Swagger isn't working. Comment if Spring isn't working. This should get fixed at some point.
+//@Profile("dev,qa,prod")
 @Configuration
 @EnableSwagger2
 @ComponentScan("org.collegeopentextbooks.api.controller")

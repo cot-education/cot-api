@@ -105,26 +105,6 @@ public interface ResourceService {
 	Resource addTagToResource(Resource resource, Tag tag) throws InvalidResourceException, InvalidTagException;
 
 	/**
-	 * Adds an association between a resource and a license
-	 * @param resource
-	 * @param licenseId
-	 * @throws RequiredValueEmptyException if the provided resource ID or license ID is missing or blank
-	 * @throws ValueTooLongException if the provided license ID is longer than its max length
-	 * @author steve.perkins
-	 */
-	void addLicenseToResource(Resource resource, String licenseId);
-
-	/**
-	 * Removes an existing association between a resource and a license
-	 * @param resourceId
-	 * @param licenseId
-	 * @throws RequiredValueEmptyException if the provided resource ID or license ID is missing or blank
-	 * @throws ValueTooLongException if the provided license ID is longer than its max length
-	 * @author steve.perkins
-	 */
-	void deleteLicenseFromResource(Integer resourceId, String licenseId);
-
-	/**
 	 * Creates or updates the given resource's scalar values.
 	 * @param repository the resource to create or update
 	 * @return the updated resource. If this is a create operation, the new object's ID is populated on both the returned object and the given object.
@@ -133,5 +113,13 @@ public interface ResourceService {
 	 * @author steve.perkins
 	 */
 	Resource save(Resource resource);
+	
+	/**
+	 * Inspects each object attached to <code>resource</code>, attempts to find a matching object already in the database, and merges them together if so. If no match is found for a given object, a new object is created and associated with <code>resource</code>.
+	 * @param resource
+	 * @return the persisted resource
+	 * @author steve.perkins
+	 */
+	Resource importAndMerge(Resource resource);
 
 }

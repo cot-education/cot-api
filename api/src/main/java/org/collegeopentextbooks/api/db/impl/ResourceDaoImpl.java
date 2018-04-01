@@ -8,17 +8,15 @@ import java.util.Map;
 import javax.sql.DataSource;
 
 import org.apache.commons.lang3.StringUtils;
-import org.collegeopentextbooks.api.db.LicenseDao;
 import org.collegeopentextbooks.api.db.ResourceDao;
 import org.collegeopentextbooks.api.db.rowmapper.ResourceRowMapper;
+import org.collegeopentextbooks.api.model.License;
 import org.collegeopentextbooks.api.model.Resource;
 import org.collegeopentextbooks.api.model.SearchCriteria;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
-import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.stereotype.Component;
 
@@ -27,11 +25,13 @@ public class ResourceDaoImpl implements ResourceDao {
 	private static final Logger logger = LoggerFactory.getLogger(ResourceDaoImpl.class);
 	private static String GET_RESOURCES_SQL = "SELECT r.*, rep.id AS repository_id, rep.name AS repository_name, rep.url AS repository_url, rep.search_name AS repository_search_name, rep.created_date AS repository_created_date, rep.updated_date AS repository_updated_date,  o.id AS organization_id, o.name AS organization_name, o.url AS organization_url, o.logo_url AS organization_logo_url, o.search_name AS organization_search_name, o.created_date AS organization_created_date, o.updated_date AS organization_updated_date FROM resource r INNER JOIN repository rep ON r.repository_id=rep.id INNER JOIN organization o ON rep.organization_id=o.id";
 	private static String GET_RESOURCE_BY_ID_SQL = "SELECT r.*, rep.id AS repository_id, rep.name AS repository_name, rep.url AS repository_url, rep.search_name AS repository_search_name, rep.created_date AS repository_created_date, rep.updated_date AS repository_updated_date,  o.id AS organization_id, o.name AS organization_name, o.url AS organization_url, o.logo_url AS organization_logo_url, o.search_name AS organization_search_name, o.created_date AS organization_created_date, o.updated_date AS organization_updated_date FROM resource r INNER JOIN repository rep ON r.repository_id=rep.id INNER JOIN organization o ON rep.organization_id=o.id WHERE r.id=?";
+	private static String GET_RESOURCE_BY_EXTERNAL_ID_SQL = "SELECT r.*, rep.id AS repository_id, rep.name AS repository_name, rep.url AS repository_url, rep.search_name AS repository_search_name, rep.created_date AS repository_created_date, rep.updated_date AS repository_updated_date,  o.id AS organization_id, o.name AS organization_name, o.url AS organization_url, o.logo_url AS organization_logo_url, o.search_name AS organization_search_name, o.created_date AS organization_created_date, o.updated_date AS organization_updated_date FROM resource r INNER JOIN repository rep ON r.repository_id=rep.id INNER JOIN organization o ON rep.organization_id=o.id WHERE r.external_id=?";
+	private static String GET_RESOURCE_BY_SEARCH_TITLE_SQL = "SELECT r.*, rep.id AS repository_id, rep.name AS repository_name, rep.url AS repository_url, rep.search_name AS repository_search_name, rep.created_date AS repository_created_date, rep.updated_date AS repository_updated_date,  o.id AS organization_id, o.name AS organization_name, o.url AS organization_url, o.logo_url AS organization_logo_url, o.search_name AS organization_search_name, o.created_date AS organization_created_date, o.updated_date AS organization_updated_date FROM resource r INNER JOIN repository rep ON r.repository_id=rep.id INNER JOIN organization o ON rep.organization_id=o.id WHERE r.search_title=? AND r.repository_id=?";
 	private static String GET_RESOURCES_BY_REPOSITORY_ID_SQL = "SELECT r.*, rep.id AS repository_id, rep.name AS repository_name, rep.url AS repository_url, rep.search_name AS repository_search_name, rep.created_date AS repository_created_date, rep.updated_date AS repository_updated_date,  o.id AS organization_id, o.name AS organization_name, o.url AS organization_url, o.logo_url AS organization_logo_url, o.search_name AS organization_search_name, o.created_date AS organization_created_date, o.updated_date AS organization_updated_date FROM resource r INNER JOIN repository rep ON r.repository_id=rep.id INNER JOIN organization o ON rep.organization_id=o.id WHERE rep.id=?";
 	private static String GET_RESOURCES_BY_TAG_ID_SQL = "SELECT r.*, rep.id AS repository_id, rep.name AS repository_name, rep.url AS repository_url, rep.search_name AS repository_search_name, rep.created_date AS repository_created_date, rep.updated_date AS repository_updated_date,  o.id AS organization_id, o.name AS organization_name, o.url AS organization_url, o.logo_url AS organization_logo_url, o.search_name AS organization_search_name, o.created_date AS organization_created_date, o.updated_date AS organization_updated_date FROM resource r INNER JOIN resource_tag rt ON r.id=rt.resource_id INNER JOIN repository rep ON r.repository_id=rep.id INNER JOIN organization o ON rep.organization_id=o.id WHERE rt.tag_id=?";
-	private static String GET_RESOURCES_BY_AUTHOR_ID_SQL = "SELECT r.*, rep.id AS repository_id, rep.name AS repository_name, rep.url AS repository_url, rep.search_name AS repository_search_name, rep.created_date AS repository_created_date, rep.updated_date AS repository_updated_date,  o.id AS organization_id, o.name AS organization_name, o.url AS organization_url, o.logo_url AS organization_logo_url, o.search_name AS organization_search_name, o.created_date AS organization_created_date, o.updated_date AS organization_updated_date FROM resource r INNER JOIN resource_author ra ON r.id=ra.resource_id INNER JOIN repository rep ON r.repository_id=rep.id INNER JOIN organization o ON rep.organization_id=o.id WHERE ra.author_id=?";
+	private static String GET_RESOURCES_BY_AUTHOR_ID_SQL = "SELECT r.*, rep.id AS repository_id, rep.name AS repository_name, rep.url AS repository_url, rep.search_name AS repository_search_name, rep.created_date AS repository_created_date, rep.updated_date AS repository_updated_date,  o.id AS organization_id, o.name AS organization_name, o.url AS organization_url, o.logo_url AS organization_logo_url, o.search_name AS organization_search_name, o.created_date AS organization_created_date, o.updated_date AS organization_updated_datel FROM resource r INNER JOIN resource_author ra ON r.id=ra.resource_id INNER JOIN repository rep ON r.repository_id=rep.id INNER JOIN organization o ON rep.organization_id=o.id WHERE ra.author_id=?";
 	private static String GET_RESOURCES_BY_EDITOR_ID_SQL = "SELECT r.*, rep.id AS repository_id, rep.name AS repository_name, rep.url AS repository_url, rep.search_name AS repository_search_name, rep.created_date AS repository_created_date, rep.updated_date AS repository_updated_date,  o.id AS organization_id, o.name AS organization_name, o.url AS organization_url, o.logo_url AS organization_logo_url, o.search_name AS organization_search_name, o.created_date AS organization_created_date, o.updated_date AS organization_updated_date FROM resource r INNER JOIN resource_editor re ON r.id=re.resource_id INNER JOIN repository rep ON r.repository_id=rep.id INNER JOIN organization o ON rep.organization_id=o.id WHERE re.editor_id=?";
-	private static String UPDATE_SQL = "UPDATE resource SET title=:title, url=:url, license=:license, search_title=LOWER(:title), ancillaries_url=:ancillariesUrl, external_review_url=:externalReviewUrl WHERE id=:id";
+	private static String UPDATE_SQL = "UPDATE resource SET title=?, url=?, search_title=?, ancillaries_url=?, cot_review_url=?, license_name=?, license_url=?, search_license=?, external_id=? WHERE id=?";
 	
 	private static String SEARCH_SQL_SELECT = "SELECT r.*, rep.id AS repository_id, rep.name AS repository_name, rep.url AS repository_url, rep.search_name AS repository_search_name, rep.created_date AS repository_created_date, rep.updated_date AS repository_updated_date,  o.id AS organization_id, o.name AS organization_name, o.url AS organization_url, o.logo_url AS organization_logo_url, o.search_name AS organization_search_name, o.created_date AS organization_created_date, o.updated_date AS organization_updated_date FROM resource r INNER JOIN repository rep ON r.repository_id=rep.id INNER JOIN organization o ON rep.organization_id=o.id";
 	
@@ -68,6 +68,27 @@ public class ResourceDaoImpl implements ResourceDao {
 	public Resource getById(int resourceId) {
 		Resource result = jdbcTemplate.queryForObject(GET_RESOURCE_BY_ID_SQL, new Integer[] { resourceId }, rowMapper);
 		return result;
+	}
+	
+	/* (non-Javadoc)
+	 * @see org.collegeopentextbooks.api.db.ResourceDao#getByExternalId(String)
+	 */
+	@Override
+	public Resource getByExternalId(String externalId) {
+		Resource result = jdbcTemplate.queryForObject(GET_RESOURCE_BY_EXTERNAL_ID_SQL, new String[] { externalId }, rowMapper);
+		return result;
+	}
+	
+	/* (non-Javadoc)
+	 * @see org.collegeopentextbooks.api.db.ResourceDao#getBySearchTerm(java.lang.String)
+	 */
+	@Override
+	public Resource getBySearchTerm(int repositoryId, String searchTerm) {
+		List<Resource> results = jdbcTemplate.query(GET_RESOURCE_BY_SEARCH_TITLE_SQL, new Object[] { searchTerm.toLowerCase(), repositoryId }, rowMapper);
+		if(null != results&& !results.isEmpty()) {
+			return results.get(0);
+		}
+		return null;
 	}
 	
 	/* (non-Javadoc)
@@ -192,29 +213,6 @@ public class ResourceDaoImpl implements ResourceDao {
 			conditions.add(condition);
 		}
 		
-		// Constrain to selected licenses
-		if(null != searchCriteria.getLicenseCodes() 
-				&& !searchCriteria.getLicenseCodes().isEmpty()) {
-			List<String> list = searchCriteria.getLicenseCodes();
-			String condition = "(SELECT COUNT(license_id) FROM resource_license WHERE resource_id=r.id AND license_id IN(";
-			for(int x = 0; x < list.size(); x++) {
-				// Ignore input that could be malicious
-				String licenseId = list.get(x);
-				if(StringUtils.isBlank(licenseId) 
-						|| licenseId.length() < LicenseDao.LICENSE_ID_MAX_SIZE) {
-					continue;
-				}
-				
-				if(x > 0) {
-					condition += ",";
-				}
-				condition += "?";
-				arguments.add(licenseId);
-			}
-			condition += ")) > 0";
-			conditions.add(condition);
-		}
-		
 		// TODO Test for SQL injection
 		if(StringUtils.isNotBlank(searchCriteria.getPartialTitle())
 				&& searchCriteria.getPartialTitle().length() > 3) {
@@ -225,6 +223,25 @@ public class ResourceDaoImpl implements ResourceDao {
 				&& searchCriteria.getPartialUrl().length() > 3) {
 			conditions.add("r.url LIKE ?");
 			arguments.add("%" + searchCriteria.getPartialUrl() + "%");
+		}
+		// Constrain to selected licenses
+		if(null != searchCriteria.getLicenseCodes()) {
+			List<String> list = searchCriteria.getLicenseCodes();
+			String condition = "(";
+			for(int x = 0; x < list.size(); x++) {
+				// Ignore input that could be malicious
+				String licenseName = list.get(x);
+				if(StringUtils.isBlank(licenseName))
+					continue;
+				
+				if(x > 0) {
+					condition += " OR ";
+				}
+				condition += "r.search_license LIKE ?";
+				
+				arguments.add("%" + stripFormatting(licenseName) + "%");
+			}
+			conditions.add(condition + ")");
 		}
 		
 		StringBuilder criteria = new StringBuilder(SEARCH_SQL_SELECT + " WHERE ");
@@ -258,24 +275,40 @@ public class ResourceDaoImpl implements ResourceDao {
 	}
 	
 	protected Resource insert(Resource resource) {
+		if(null == resource.getLicense())
+			resource.setLicense(new License());
+		
 		Map<String, Object> parameters = new HashMap<String, Object>(8);
 		parameters.put("repository_id", resource.getRepository().getId());
         parameters.put("title", resource.getTitle());
         parameters.put("url", resource.getUrl());
-        parameters.put("license", resource.getLicense());
         parameters.put("search_title", resource.getSearchTitle());
         parameters.put("ancillaries_url", resource.getAncillariesUrl());
-        parameters.put("external_review_url", resource.getExternalReviewUrl());
+        parameters.put("cot_review_url", resource.getCotReviewUrl());
+        parameters.put("license_name", (null == resource.getLicense().getName() ? null : resource.getLicense().getName().toUpperCase()));
+        parameters.put("license_url", resource.getLicense().getUrl());
+        parameters.put("search_license", stripFormatting(resource.getLicense().getName()));
         parameters.put("search_title", resource.getSearchTitle());
+        parameters.put("external_id", resource.getExternalId());
         Number newId = this.insert.executeAndReturnKey(parameters);
         resource.setId(newId.intValue());
         return resource;
 	}
 	
 	protected Resource update(Resource resource) {
-		SqlParameterSource parameters = new BeanPropertySqlParameterSource(resource);
-		this.jdbcTemplate.update(UPDATE_SQL, parameters);
+		if(null == resource.getLicense())
+			resource.setLicense(new License());
+		
+		this.jdbcTemplate.update(UPDATE_SQL, resource.getTitle(), resource.getUrl(), resource.getSearchTitle(), resource.getAncillariesUrl(), resource.getCotReviewUrl(), resource.getLicense().getName(), resource.getLicense().getUrl(), stripFormatting(resource.getLicense().getName()), resource.getExternalId(), resource.getId());
 		return resource;
 	}
 	
+	private String stripFormatting(String str) {
+		if(null == str)
+			return null;
+		str = str.toUpperCase();
+		// Strip out special characters and spaces
+		return str.replaceAll("[ \\.!\\(\\)@#\\^&\\*\\-_=+,<>\\/\\?]", "");
+	}
+
 }

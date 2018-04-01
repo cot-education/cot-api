@@ -6,7 +6,6 @@ import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 import org.collegeopentextbooks.api.db.AuthorDao;
 import org.collegeopentextbooks.api.db.EditorDao;
-import org.collegeopentextbooks.api.db.LicenseDao;
 import org.collegeopentextbooks.api.db.ResourceDao;
 import org.collegeopentextbooks.api.db.TagDao;
 import org.collegeopentextbooks.api.exception.InvalidAuthorException;
@@ -20,7 +19,10 @@ import org.collegeopentextbooks.api.model.Editor;
 import org.collegeopentextbooks.api.model.Resource;
 import org.collegeopentextbooks.api.model.SearchCriteria;
 import org.collegeopentextbooks.api.model.Tag;
+import org.collegeopentextbooks.api.service.AuthorService;
+import org.collegeopentextbooks.api.service.EditorService;
 import org.collegeopentextbooks.api.service.ResourceService;
+import org.collegeopentextbooks.api.service.TagService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -30,15 +32,22 @@ public class ResourceServiceImpl implements ResourceService {
 	private static final Integer TITLE_MAX_LENGTH = 255;
 	private static final Integer URL_MAX_LENGTH = 255;
 	private static final Integer ANCILLARIES_URL_MAX_LENGTH = 255;
-	private static final Integer EXTERNAL_REVIEW_URL_MAX_LENGTH = 255;
-	private static final Integer LICENSE_ID_MAX_LENGTH = 2;
+	private static final Integer REVIEW_URL_MAX_LENGTH = 255;
+	private static final Integer LICENSE_MAX_LENGTH = 255;
 	
 	@Autowired
 	private ResourceDao resourceDao;
 	
 	@Autowired
-	private TagDao tagDao;
+	private TagService tagService;
 	
+	@Autowired
+	private AuthorService authorService;
+	
+	@Autowired
+	private EditorService editorService;
+	
+	// In order to preserve the API's ease-of-use for consumers, we have to inject both these services and DAOs
 	@Autowired
 	private AuthorDao authorDao;
 	
@@ -46,7 +55,8 @@ public class ResourceServiceImpl implements ResourceService {
 	private EditorDao editorDao;
 	
 	@Autowired
-	private LicenseDao licenseDao;
+	private TagDao tagDao;
+	
 	
 	/* (non-Javadoc)
 	 * @see org.collegeopentextbooks.api.service.ResourceService#search(org.collegeopentextbooks.api.model.SearchCriteria)
@@ -124,12 +134,8 @@ public class ResourceServiceImpl implements ResourceService {
 		if(null == author || null == author.getId() || author.getId() < 0)
 			throw new InvalidAuthorException("Invalid author ID");
 		
-		authorDao.addAuthorToResource(resource.getId(), author.getId());
+		authorService.addAuthorToResource(resource, author);
 		
-		if(null == resource.getAuthors())
-			resource.setAuthors(new ArrayList<Author>());
-		
-		resource.getAuthors().add(author);
 		return resource;
 	}
 	
@@ -143,12 +149,8 @@ public class ResourceServiceImpl implements ResourceService {
 		if(null == editor || null == editor.getId() || editor.getId() < 0)
 			throw new InvalidEditorException("Invalid editor ID");
 		
-		editorDao.addEditorToResource(resource.getId(), editor.getId());
+		editorService.addEditorToResource(resource, editor);
 		
-		if(null == resource.getEditors())
-			resource.setEditors(new ArrayList<Editor>());
-		
-		resource.getEditors().add(editor);
 		return resource;
 	}
 	
@@ -162,47 +164,9 @@ public class ResourceServiceImpl implements ResourceService {
 		if(null == tag || null == tag.getId() || tag.getId() < 0)
 			throw new InvalidTagException("Invalid tag ID");
 		
-		tagDao.addTagToResource(resource.getId(), tag.getId());
+		tagService.addTagToResource(resource, tag);
 		
-		if(null == resource.getTags())
-			resource.setTags(new ArrayList<Tag>());
-		
-		resource.getTags().add(tag);
 		return resource;
-	}
-	
-	/* (non-Javadoc)
-	 * @see org.collegeopentextbooks.api.service.ResourceService#addLicenseToResource(org.collegeopentextbooks.api.model.Resource, java.lang.String)
-	 */
-	@Override
-	public void addLicenseToResource(Resource resource, String licenseId) {
-		if(null == resource || null == resource.getId())
-			throw new RequiredValueEmptyException("Resource ID is required");
-		
-		if(StringUtils.isBlank(licenseId))
-			throw new RequiredValueEmptyException("License Code cannot be blank");
-			
-		if(licenseId.length() > LICENSE_ID_MAX_LENGTH)
-			throw new ValueTooLongException("License Code exceeds max length (" + LICENSE_ID_MAX_LENGTH + ")");
-		
-		licenseDao.addLicenseToResource(resource.getId(), licenseId);
-	}
-	
-	/* (non-Javadoc)
-	 * @see org.collegeopentextbooks.api.service.ResourceService#deleteLicenseFromResource(java.lang.Integer, java.lang.String)
-	 */
-	@Override
-	public void deleteLicenseFromResource(Integer resourceId, String licenseId) {
-		if(null == resourceId)
-			throw new RequiredValueEmptyException("Resource ID is required");
-		
-		if(StringUtils.isBlank(licenseId))
-			throw new RequiredValueEmptyException("License Code cannot be blank");
-		
-		if(licenseId.length() > LICENSE_ID_MAX_LENGTH)
-			throw new ValueTooLongException("License Code exceeds max length (" + LICENSE_ID_MAX_LENGTH + ")");
-		
-		licenseDao.deleteLicenseFromResource(resourceId, licenseId);
 	}
 	
 	/* (non-Javadoc)
@@ -227,11 +191,44 @@ public class ResourceServiceImpl implements ResourceService {
 				&& resource.getAncillariesUrl().length() > ANCILLARIES_URL_MAX_LENGTH)
 			throw new ValueTooLongException("Ancillaries URL exceeds max length (" + ANCILLARIES_URL_MAX_LENGTH + ")");
 		
-		if(StringUtils.isNotBlank(resource.getExternalReviewUrl()) 
-				&& resource.getExternalReviewUrl().length() > EXTERNAL_REVIEW_URL_MAX_LENGTH)
-			throw new ValueTooLongException("External Review URL exceeds max length (" + EXTERNAL_REVIEW_URL_MAX_LENGTH + ")");
+		if(StringUtils.isNotBlank(resource.getCotReviewUrl()) 
+				&& resource.getCotReviewUrl().length() > REVIEW_URL_MAX_LENGTH)
+			throw new ValueTooLongException("Custom Review URL exceeds max length (" + REVIEW_URL_MAX_LENGTH + ")");
 		
-		return resourceDao.save(resource);
+		if(null != resource.getLicense() && StringUtils.isNotBlank(resource.getLicense().getName()) && resource.getLicense().getName().length() > LICENSE_MAX_LENGTH)
+			resource.getLicense().setName(resource.getLicense().getName().substring(0, LICENSE_MAX_LENGTH - 1));
+		
+		Resource existingResource = resourceDao.getBySearchTerm(resource.getRepository().getId(), resource.getTitle());
+		if(null != existingResource) {
+			resource.setId(existingResource.getId());
+		}
+		resource = resourceDao.save(resource);
+		
+		// Now save all of the related pieces of this resource
+		if(null != resource.getAuthors()) {
+			List<Author> authors = new ArrayList<Author>(resource.getAuthors());
+			for(Author author: authors) {
+				author.setRepositoryId(resource.getRepository().getId());
+				authorService.save(author);
+				addAuthorToResource(resource, author);
+			}
+		}
+		if(null != resource.getEditors()) {
+			for(Editor editor: resource.getEditors()) {
+				editorService.save(editor);
+				addEditorToResource(resource, editor);
+			}
+		}
+		
+		if(null != resource.getTags()) {
+			List<Tag> tags = new ArrayList<Tag>(resource.getTags());
+			for(Tag tag: tags) {
+				tagService.save(tag);
+				addTagToResource(resource, tag);
+			}
+		}
+		
+		return resource;
 	}
 	
 	/**
@@ -244,10 +241,9 @@ public class ResourceServiceImpl implements ResourceService {
 		if(null == resource)
 			return null;
 		
-		resource.setAuthors(authorDao.getAuthorsByResourceId(resource.getId()));
-		resource.setEditors(editorDao.getEditorsByResourceId(resource.getId()));
-		resource.setTags(tagDao.getTagsByResourceId(resource.getId()));
-		resource.setLicenses(licenseDao.getLicensesByResourceId(resource.getId()));
+		resource.setAuthors(authorService.getAuthors(resource));
+		resource.setEditors(editorService.getEditors(resource));
+		resource.setTags(tagService.getTags(resource));
 		return resource;
 	}
 	
@@ -256,6 +252,39 @@ public class ResourceServiceImpl implements ResourceService {
 			populate(resource);
 		}
 		return resources;
+	}
+
+	@Override
+	public Resource importAndMerge(Resource resource) {
+		if(null == resource)
+			return null;
+		
+		Resource dbResource = null;
+		// First try to find this resource by its external (repository-specific) ID
+		if(StringUtils.isNotBlank(resource.getExternalId())) {
+			dbResource = resourceDao.getByExternalId(resource.getExternalId());
+		}
+		// Then by its title
+		if(null == dbResource) {
+			dbResource = resourceDao.getBySearchTerm(resource.getRepository().getId(), resource.getSearchTitle());
+		}
+		// If we still haven't found it, create a new record
+		if(null == dbResource) {
+			dbResource = save(resource);
+		} else {
+			// Save the scalar properties of the resource
+			dbResource.setAncillariesUrl(resource.getAncillariesUrl());
+			dbResource.setExternalId(resource.getExternalId());
+			dbResource.setCotReviewUrl(resource.getCotReviewUrl());
+			dbResource.setTitle(resource.getTitle());
+			dbResource.setUrl(resource.getUrl());
+			dbResource = save(dbResource);
+		}
+		dbResource.setAuthors(authorDao.merge(dbResource, resource.getAuthors()));
+		dbResource.setEditors(editorDao.merge(dbResource, resource.getEditors()));
+		dbResource.setTags(tagDao.merge(dbResource, resource.getTags()));
+		
+		return populate(dbResource);
 	}
 	
 }

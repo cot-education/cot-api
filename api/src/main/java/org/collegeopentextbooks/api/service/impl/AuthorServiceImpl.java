@@ -7,6 +7,7 @@ import org.collegeopentextbooks.api.db.AuthorDao;
 import org.collegeopentextbooks.api.exception.RequiredValueEmptyException;
 import org.collegeopentextbooks.api.exception.ValueTooLongException;
 import org.collegeopentextbooks.api.model.Author;
+import org.collegeopentextbooks.api.model.Resource;
 import org.collegeopentextbooks.api.service.AuthorService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -51,7 +52,20 @@ public class AuthorServiceImpl implements AuthorService {
 		if(author.getName().length() > NAME_MAX_LENGTH)
 			throw new ValueTooLongException("Name exceeds max length (" + NAME_MAX_LENGTH + ")");
 		
+		Author existingAuthor = authorDao.getBySearchTerm(author.getRepositoryId(), author.getName());
+		if(null != existingAuthor) {
+			author.setId(existingAuthor.getId());
+		}
 		return authorDao.save(author);
 	}
 	
+	public void addAuthorToResource(Resource resource, Author author) {
+		authorDao.addAuthorToResource(resource.getId(), author.getId());
+	}
+
+	@Override
+	public List<Author> getAuthors(Resource resource) {
+		return authorDao.getAuthorsByResourceId(resource.getId());
+	}
+
 }

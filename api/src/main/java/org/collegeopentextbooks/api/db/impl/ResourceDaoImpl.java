@@ -22,7 +22,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class ResourceDaoImpl implements ResourceDao {
-	private static final Logger logger = LoggerFactory.getLogger(ResourceDaoImpl.class);
+	private static final Logger LOG = LoggerFactory.getLogger(ResourceDaoImpl.class);
 	private static String GET_RESOURCES_SQL = "SELECT r.*, rep.id AS repository_id, rep.name AS repository_name, rep.url AS repository_url, rep.search_name AS repository_search_name, rep.created_date AS repository_created_date, rep.updated_date AS repository_updated_date,  o.id AS organization_id, o.name AS organization_name, o.url AS organization_url, o.logo_url AS organization_logo_url, o.search_name AS organization_search_name, o.created_date AS organization_created_date, o.updated_date AS organization_updated_date FROM resource r INNER JOIN repository rep ON r.repository_id=rep.id INNER JOIN organization o ON rep.organization_id=o.id";
 	private static String GET_RESOURCE_BY_ID_SQL = "SELECT r.*, rep.id AS repository_id, rep.name AS repository_name, rep.url AS repository_url, rep.search_name AS repository_search_name, rep.created_date AS repository_created_date, rep.updated_date AS repository_updated_date,  o.id AS organization_id, o.name AS organization_name, o.url AS organization_url, o.logo_url AS organization_logo_url, o.search_name AS organization_search_name, o.created_date AS organization_created_date, o.updated_date AS organization_updated_date FROM resource r INNER JOIN repository rep ON r.repository_id=rep.id INNER JOIN organization o ON rep.organization_id=o.id WHERE r.id=?";
 	private static String GET_RESOURCE_BY_EXTERNAL_ID_SQL = "SELECT r.*, rep.id AS repository_id, rep.name AS repository_name, rep.url AS repository_url, rep.search_name AS repository_search_name, rep.created_date AS repository_created_date, rep.updated_date AS repository_updated_date,  o.id AS organization_id, o.name AS organization_name, o.url AS organization_url, o.logo_url AS organization_logo_url, o.search_name AS organization_search_name, o.created_date AS organization_created_date, o.updated_date AS organization_updated_date FROM resource r INNER JOIN repository rep ON r.repository_id=rep.id INNER JOIN organization o ON rep.organization_id=o.id WHERE r.external_id=?";
@@ -32,6 +32,7 @@ public class ResourceDaoImpl implements ResourceDao {
 	private static String GET_RESOURCES_BY_AUTHOR_ID_SQL = "SELECT r.*, rep.id AS repository_id, rep.name AS repository_name, rep.url AS repository_url, rep.search_name AS repository_search_name, rep.created_date AS repository_created_date, rep.updated_date AS repository_updated_date,  o.id AS organization_id, o.name AS organization_name, o.url AS organization_url, o.logo_url AS organization_logo_url, o.search_name AS organization_search_name, o.created_date AS organization_created_date, o.updated_date AS organization_updated_datel FROM resource r INNER JOIN resource_author ra ON r.id=ra.resource_id INNER JOIN repository rep ON r.repository_id=rep.id INNER JOIN organization o ON rep.organization_id=o.id WHERE ra.author_id=?";
 	private static String GET_RESOURCES_BY_EDITOR_ID_SQL = "SELECT r.*, rep.id AS repository_id, rep.name AS repository_name, rep.url AS repository_url, rep.search_name AS repository_search_name, rep.created_date AS repository_created_date, rep.updated_date AS repository_updated_date,  o.id AS organization_id, o.name AS organization_name, o.url AS organization_url, o.logo_url AS organization_logo_url, o.search_name AS organization_search_name, o.created_date AS organization_created_date, o.updated_date AS organization_updated_date FROM resource r INNER JOIN resource_editor re ON r.id=re.resource_id INNER JOIN repository rep ON r.repository_id=rep.id INNER JOIN organization o ON rep.organization_id=o.id WHERE re.editor_id=?";
 	private static String UPDATE_SQL = "UPDATE resource SET title=?, url=?, search_title=?, ancillaries_url=?, cot_review_url=?, license_name=?, license_url=?, search_license=?, external_id=? WHERE id=?";
+	private static String DELETE_SQL = "DELETE FROM resource WHERE external_id=?";
 	
 	private static String SEARCH_SQL_SELECT = "SELECT r.*, rep.id AS repository_id, rep.name AS repository_name, rep.url AS repository_url, rep.search_name AS repository_search_name, rep.created_date AS repository_created_date, rep.updated_date AS repository_updated_date,  o.id AS organization_id, o.name AS organization_name, o.url AS organization_url, o.logo_url AS organization_logo_url, o.search_name AS organization_search_name, o.created_date AS organization_created_date, o.updated_date AS organization_updated_date FROM resource r INNER JOIN repository rep ON r.repository_id=rep.id INNER JOIN organization o ON rep.organization_id=o.id";
 	
@@ -66,8 +67,11 @@ public class ResourceDaoImpl implements ResourceDao {
 	 */
 	@Override
 	public Resource getById(int resourceId) {
-		Resource result = jdbcTemplate.queryForObject(GET_RESOURCE_BY_ID_SQL, new Integer[] { resourceId }, rowMapper);
-		return result;
+		List<Resource> results = jdbcTemplate.query(GET_RESOURCE_BY_ID_SQL, new Integer[] { resourceId }, rowMapper);
+		if(null == results || results.size() < 1) {
+			return null;
+		}
+		return results.get(0);
 	}
 	
 	/* (non-Javadoc)
@@ -75,8 +79,11 @@ public class ResourceDaoImpl implements ResourceDao {
 	 */
 	@Override
 	public Resource getByExternalId(String externalId) {
-		Resource result = jdbcTemplate.queryForObject(GET_RESOURCE_BY_EXTERNAL_ID_SQL, new String[] { externalId }, rowMapper);
-		return result;
+		List<Resource> results = jdbcTemplate.query(GET_RESOURCE_BY_EXTERNAL_ID_SQL, new String[] { externalId }, rowMapper);
+		if(null == results || results.size() < 1) {
+			return null;
+		}
+		return results.get(0);
 	}
 	
 	/* (non-Javadoc)
@@ -255,12 +262,17 @@ public class ResourceDaoImpl implements ResourceDao {
 		}
 		
 		String query = criteria.toString();
-		logger.info("Search query is: " + query);
+		LOG.info("Search query is: " + query);
 		List<Resource> results = jdbcTemplate.query(query, arguments.toArray(), rowMapper);
 		if(null == results) {
 			results = new ArrayList<Resource>();
 		}
 		return results;
+	}
+	
+	@Override
+	public void delete(Resource resource) {
+		this.jdbcTemplate.update(DELETE_SQL, resource.getExternalId());
 	}
 	
 	/* (non-Javadoc)
@@ -310,5 +322,4 @@ public class ResourceDaoImpl implements ResourceDao {
 		// Strip out special characters and spaces
 		return str.replaceAll("[ \\.!\\(\\)@#\\^&\\*\\-_=+,<>\\/\\?]", "");
 	}
-
 }
